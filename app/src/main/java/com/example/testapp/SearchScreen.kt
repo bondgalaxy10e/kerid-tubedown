@@ -122,17 +122,16 @@ fun SearchScreen(
             value = searchText,
             onValueChange = viewModel::updateSearchText,
             label = { Text("검색어를 입력하세요") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "검색"
-                )
-            },
             trailingIcon = {
-                if (searchState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
+                IconButton(
+                    onClick = {
+                        viewModel.performSearch()
+                        keyboardController?.hide()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "검색"
                     )
                 }
             },
@@ -473,8 +472,13 @@ fun VideoItem(
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp
                         )
+                        // 선택된 화질 표시 (준비중 대신)
+                        val displayText = when (downloadProgress.selectedResolution) {
+                            Resolution.AUDIO_BEST -> "m4a"
+                            else -> downloadProgress.selectedResolution?.displayName ?: "준비중"
+                        }
                         Text(
-                            text = "준비중",
+                            text = displayText,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -483,7 +487,7 @@ fun VideoItem(
                 DownloadStatus.DOWNLOADING -> {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         CircularProgressIndicator(
                             progress = { downloadProgress.progress / 100f },
@@ -496,29 +500,25 @@ fun VideoItem(
                             color = MaterialTheme.colorScheme.primary
                         )
                         
-                        // 단계별 상태 표시
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = downloadProgress.currentPhase.emoji,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                            Text(
-                                text = downloadProgress.currentPhase.displayName,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        
-                        // 선택된 화질 표시
-                        downloadProgress.selectedResolution?.let { resolution ->
-                            Text(
-                                text = resolution.displayName,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                        // 중요한 단계만 표시 (병합중, 완료)
+                        when (downloadProgress.currentPhase) {
+                            DownloadPhase.MERGING -> {
+                                Text(
+                                    text = "병합중",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            DownloadPhase.COMPLETED -> {
+                                Text(
+                                    text = "완료",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            else -> {
+                                // 기타 단계는 표시하지 않음 (퍼센트만)
+                            }
                         }
                     }
                 }
